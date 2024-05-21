@@ -34,7 +34,6 @@ def calc_orientation(org: pg.Rect, dst: pg.Rect) -> tuple[float, float]:
     norm = math.sqrt(x_diff**2+y_diff**2)
     return x_diff/norm, y_diff/norm
 
-
 class Bird(pg.sprite.Sprite):
     """
     ゲームキャラクター（こうかとん）に関するクラス
@@ -268,6 +267,7 @@ class Gravity(pg.sprite.Sprite):
 
 
 class Shield(pg.sprite.Sprite):
+
     """
     防御壁に関するクラス
     """
@@ -298,14 +298,27 @@ class Shield(pg.sprite.Sprite):
         self.life -= 1
         if self.life < 0:
             self.kill()
-    
+ 
+
+class Round:
+    def __init__(self): # ラウンド数表示
+        self.round = 1
+        self.font = pg.font.Font(None, 100)
+        self.text = self.font.render(f"Round: {self.round}", 0, (255,255,255))
+        self.rect = self.text.get_rect()
+        self.rect.center = (800, 100)
+        self.kill = 0
+
+    def update(self, screen: pg.surface):
+        self.text = self.font.render(f"Round: {self.round}", 0, (255,255,255))
+        screen.blit(self.text, self.rect)
+
 
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load(f"fig/pg_bg.jpg")
     score = Score()
-
     bird = Bird(3, (900, 400))
     bombs = pg.sprite.Group()
     beams = pg.sprite.Group()
@@ -313,6 +326,7 @@ def main():
     emys = pg.sprite.Group()
     gravity = pg.sprite.Group()
     shields = pg.sprite.Group()
+    round = Round()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -347,6 +361,7 @@ def main():
         for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
             exps.add(Explosion(emy, 100))  # 爆発エフェクト
             score.value += 10  # 10点アップ
+            round.kill += 1
             bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
@@ -383,6 +398,11 @@ def main():
             time.sleep(2)
             return
         
+        if round.kill == 5: # 5回キルをするとラウンド数が増える
+            round.kill += 1
+            round.round += 1
+            round.kill = 0
+        
         bird.update(key_lst, screen)
         beams.update()
         beams.draw(screen)
@@ -397,6 +417,7 @@ def main():
         score.update(screen)
         gravity.update()
         gravity.draw(screen)
+        round.update(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
