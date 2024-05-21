@@ -111,6 +111,43 @@ class Bird(pg.sprite.Sprite):
         screen.blit(self.image, self.rect)
     
 
+class Enemy_Beam(pg.sprite.Sprite):
+     """
+     敵のビーム（レーザー風）に関するクラス
+     """
+     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255)]
+
+     def __init__(self, emy: "Enemy", bird:Bird):
+         """
+         ビームSurfaceを生成する
+         引数1 emy:ビームを射出する敵機
+         引数2 bird:攻撃対象のこうかとん
+         """
+         super().__init__()
+         self.image = pg.Surface((1600,900))
+         self.color = random.choice(__class__.colors)
+         #self.color = (255,0,0)
+         self.bold = 1
+         self.memoemx = emy.rect.centerx
+         self.memoemy = emy.rect.centery
+         self.kkx = bird.rect.centerx
+         self.kky = bird.rect.centery 
+         pg.draw.line(self.image, self.color, (emy.rect.centerx,emy.rect.centery), (bird.rect.centerx,bird.rect.centery),self.bold)
+         self.image.set_colorkey((0,0,0))
+         self.rect = self.image.get_rect()
+
+     def update(self,tmr):
+          if tmr%10 == 0:
+            self.bold += 1
+          if self.bold < 10:
+            pg.draw.line(self.image, self.color, (self.memoemx,self.memoemy), (self.kkx,self.kky),self.bold)
+          if self.bold == 10:
+              self.kill()
+            
+         
+
+        
+
 class Bomb(pg.sprite.Sprite):
     """
     爆弾に関するクラス
@@ -219,6 +256,7 @@ class Enemy(pg.sprite.Sprite):
         self.bound = random.randint(50, HEIGHT/2)  # 停止位置
         self.state = "down"  # 降下状態or停止状態
         self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+        self.beamcount = 0
 
     def update(self):
         """
@@ -305,17 +343,18 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load(f"fig/pg_bg.jpg")
     score = Score()
-
     bird = Bird(3, (900, 400))
+    e_beam = pg.sprite.Group()
     bombs = pg.sprite.Group()
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
     gravity = pg.sprite.Group()
     shields = pg.sprite.Group()
-
     tmr = 0
     clock = pg.time.Clock()
+    count = 0
+
     while True:
         key_lst = pg.key.get_pressed()
         for event in pg.event.get():
@@ -343,6 +382,7 @@ def main():
             if emy.state == "stop" and tmr%emy.interval == 0:
                 # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
                 bombs.add(Bomb(emy, bird))
+                e_beam.add(Enemy_Beam(emy,bird))
 
         for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
             exps.add(Explosion(emy, 100))  # 爆発エフェクト
@@ -360,8 +400,6 @@ def main():
         for emy in pg.sprite.groupcollide(emys, gravity, True, False).keys():
             exps.add(Explosion(emy, 50))  # 爆発エフェクト
             score.value += 10
-            
-
 
         if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
             if bird.state == "normal":
@@ -372,6 +410,24 @@ def main():
                 return
             else:
                 score.value += 1
+
+
+        # どのくらい当たっているかを可視化できるようにしたい
+        # ビームの敵とボムの敵を分ける
+        if len(pg.sprite.spritecollide(bird, e_beam, False)) != 0:  # 衝突判定を任意の条件で削除するようにするには？（今は削除しないになっている）
+            count += 1
+            if bird.state == "normal" and count >= 120:
+                bird.change_img(8, screen) # こうかとん悲しみエフェクト
+                score.update(screen)
+                pg.display.update()
+                time.sleep(2)
+                return
+        else:
+            count = 0
+    
+
+
+
         # 防御壁が存在し、爆弾が防御壁に衝突した場合は爆弾を削除する
         for bomb in pg.sprite.groupcollide(bombs, shields, True, False).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
@@ -383,7 +439,7 @@ def main():
             time.sleep(2)
             return
         
-        bird.update(key_lst, screen)
+        
         beams.update()
         beams.draw(screen)
         emys.update()
@@ -397,10 +453,14 @@ def main():
         score.update(screen)
         gravity.update()
         gravity.draw(screen)
+        e_beam.update(tmr)
+        e_beam.draw(screen)
+        bird.update(key_lst, screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
 
+        
 
 if __name__ == "__main__":
     pg.init()
