@@ -34,7 +34,6 @@ def calc_orientation(org: pg.Rect, dst: pg.Rect) -> tuple[float, float]:
     norm = math.sqrt(x_diff**2+y_diff**2)
     return x_diff/norm, y_diff/norm
 
-
 class Bird(pg.sprite.Sprite):
     """
     ゲームキャラクター（こうかとん）に関するクラス
@@ -110,6 +109,49 @@ class Bird(pg.sprite.Sprite):
             self.state = "normal"
         screen.blit(self.image, self.rect)
     
+
+class Enemy_Beam(pg.sprite.Sprite):
+     """
+     敵のビーム（レーザー風）に関するクラス
+     """
+     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255)]
+
+     def __init__(self, emy: "Enemy", bird:Bird):
+         """
+         ビームSurfaceを生成する
+         引数1 emy:ビームを射出する敵機
+         引数2 bird:攻撃対象のこうかとん
+         """
+         super().__init__()
+         self.memoemx = emy.rect.centerx
+         self.memoemy = emy.rect.centery
+         self.kkx = bird.rect.centerx
+         self.kky = bird.rect.centery
+        
+         #width, height = abs(self.kkx - self.memoemx) , 20
+         self.image = pg.Surface((1600, 900))
+        #  x_diff , y_diff = self.kkx-self.memoemx,self.kky-self.memoemy
+        #  norm  = math.sqrt(x_diff**2+y_diff**2)
+        #  vx,vy = x_diff/norm*math.sqrt(50),y_diff/norm*math.sqrt(50)
+        #  angle = math.degrees(math.atan2(-vy, vx))
+        #  self.image = pg.transform.rotozoom(self.image, angle,1.0)
+
+         self.color = random.choice(__class__.colors)
+         self.bold = 1
+         
+         pg.draw.line(self.image, self.color, (emy.rect.centerx,emy.rect.centery), (bird.rect.centerx,bird.rect.centery),self.bold)
+         self.image.set_colorkey((0,0,0))
+         self.rect = self.image.get_rect()
+
+     def update(self,tmr):
+          if tmr%10 == 0:
+            self.bold += 1
+          if self.bold < 10:
+            pg.draw.line(self.image, self.color, (self.memoemx,self.memoemy), (self.kkx,self.kky),self.bold)
+            return self.bold
+          if self.bold == 11:
+              self.kill()
+                  
 
 class Enemy_Beam(pg.sprite.Sprite):
      """
@@ -312,6 +354,7 @@ class Gravity(pg.sprite.Sprite):
 
 
 class Shield(pg.sprite.Sprite):
+
     """
     防御壁に関するクラス
     """
@@ -342,7 +385,21 @@ class Shield(pg.sprite.Sprite):
         self.life -= 1
         if self.life < 0:
             self.kill()
-    
+ 
+
+class Round:
+    def __init__(self): # ラウンド数表示
+        self.round = 1
+        self.font = pg.font.Font(None, 100)
+        self.text = self.font.render(f"Round: {self.round}", 0, (255,255,255))
+        self.rect = self.text.get_rect()
+        self.rect.center = (800, 100)
+        self.kill = 0
+
+    def update(self, screen: pg.surface):
+        self.text = self.font.render(f"Round: {self.round}", 0, (255,255,255))
+        screen.blit(self.text, self.rect)
+
 
 def main():
     pg.display.set_caption("真！こうかとん無双")
@@ -357,6 +414,7 @@ def main():
     emys = pg.sprite.Group()
     gravity = pg.sprite.Group()
     shields = pg.sprite.Group()
+    round = Round()
     tmr = 0
     clock = pg.time.Clock()
 
@@ -392,6 +450,7 @@ def main():
         for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
             exps.add(Explosion(emy, 100))  # 爆発エフェクト
             score.value += 10  # 10点アップ
+            round.kill += 1
             bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
@@ -437,6 +496,11 @@ def main():
             time.sleep(2)
             return
         
+        if round.kill == 5: # 5回キルをするとラウンド数が増える
+            round.kill += 1
+            round.round += 1
+            round.kill = 0
+        
 
         beams.update()
         beams.draw(screen)
@@ -454,6 +518,7 @@ def main():
         e_beam.update(tmr)
         e_beam.draw(screen)
         bird.update(key_lst, screen)
+        round.update(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
