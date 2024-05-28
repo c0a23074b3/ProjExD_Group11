@@ -124,15 +124,23 @@ class Enemy_Beam(pg.sprite.Sprite):
          引数2 bird:攻撃対象のこうかとん
          """
          super().__init__()
-         self.image = pg.Surface((1600,900))
-         self.color = random.choice(__class__.colors)
-         #self.color = (255,0,0)
-         self.bold = 1
          self.memoemx = emy.rect.centerx
          self.memoemy = emy.rect.centery
-         self.kkx = bird.rect.centerx/2
-         self.kky = bird.rect.centery/2 
-         pg.draw.line(self.image, self.color, (emy.rect.centerx,emy.rect.centery), (bird.rect.centerx/2,bird.rect.centery/2),self.bold)
+         self.kkx = bird.rect.centerx
+         self.kky = bird.rect.centery
+        
+         #width, height = abs(self.kkx - self.memoemx) , 20
+         self.image = pg.Surface((1600, 900))
+        #  x_diff , y_diff = self.kkx-self.memoemx,self.kky-self.memoemy
+        #  norm  = math.sqrt(x_diff**2+y_diff**2)
+        #  vx,vy = x_diff/norm*math.sqrt(50),y_diff/norm*math.sqrt(50)
+        #  angle = math.degrees(math.atan2(-vy, vx))
+        #  self.image = pg.transform.rotozoom(self.image, angle,1.0)
+
+         self.color = random.choice(__class__.colors)
+         self.bold = 1
+         
+         pg.draw.line(self.image, self.color, (emy.rect.centerx,emy.rect.centery), (bird.rect.centerx,bird.rect.centery),self.bold)
          self.image.set_colorkey((0,0,0))
          self.rect = self.image.get_rect()
 
@@ -142,12 +150,9 @@ class Enemy_Beam(pg.sprite.Sprite):
           if self.bold < 10:
             pg.draw.line(self.image, self.color, (self.memoemx,self.memoemy), (self.kkx,self.kky),self.bold)
             return self.bold
-          if self.bold == 10:
+          if self.bold == 11:
               self.kill()
-            
-         
-
-        
+                  
 
 class Bomb(pg.sprite.Sprite):
     """
@@ -318,12 +323,12 @@ class Shield(pg.sprite.Sprite):
             life: 防御壁の発動時間
         """
         super().__init__()
-        width, height = 20, bird.rect.height * 2
+        width, height = bird.rect.height * 2,20
         self.image = pg.Surface((width, height))  # 手順1
         pg.draw.rect(self.image, (0, 0, 255), (0, 0, 20, bird.rect.height * 2))
         color = (0, 0, 255)
         self.life = life  # 防御壁の発動時間
-        vx, vy = bird.dire  # 手順3
+        vx, vy = 1,1  # 手順3
         angle = math.degrees(math.atan2(-vy, vx))  # 手順4
         self.image = pg.transform.rotozoom(self.image, angle,1.0)
         self.rect = self.image.get_rect()
@@ -354,7 +359,6 @@ def main():
     shields = pg.sprite.Group()
     tmr = 0
     clock = pg.time.Clock()
-    count = 0
 
     while True:
         key_lst = pg.key.get_pressed()
@@ -401,7 +405,7 @@ def main():
         for emy in pg.sprite.groupcollide(emys, gravity, True, False).keys():
             exps.add(Explosion(emy, 50))  # 爆発エフェクト
             score.value += 10
-
+       
         if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
             if bird.state == "normal":
                 bird.change_img(8, screen) # こうかとん悲しみエフェクト
@@ -412,24 +416,15 @@ def main():
             else:
                 score.value += 1
 
-
-        # どのくらい当たっているかを可視化できるようにしたい
-        # ビームの敵とボムの敵を分ける
-        if len(pg.sprite.spritecollide(bird, e_beam, False)) != 0:  # 衝突判定を任意の条件で削除するようにするには？（今は削除しないになっている)
-            count +=1
-            print(count)
-            if bird.state == "normal" and count == 80:
-                bird.change_img(8, screen) # こうかとん悲しみエフェクト
-                score.update(screen)
-                pg.display.update()
-                time.sleep(2)
-                return 
-       
-        count = 0
-        print(count)
-    
-
-
+        # for beam in e_beam:
+        #     print(beam.bold)
+        #     if beam.bold >= 10:
+        #        if pg.sprite.collide_rect(bird,beam):
+        #             bird.change_img(8, screen) # こうかとん悲しみエフェクト
+        #             score.update(screen)
+        #             pg.display.update()
+        #             time.sleep(2)
+        #             return
 
         # 防御壁が存在し、爆弾が防御壁に衝突した場合は爆弾を削除する
         for bomb in pg.sprite.groupcollide(bombs, shields, True, False).keys():
@@ -442,7 +437,7 @@ def main():
             time.sleep(2)
             return
         
-        
+
         beams.update()
         beams.draw(screen)
         emys.update()
@@ -464,7 +459,6 @@ def main():
         clock.tick(50)
 
         
-
 if __name__ == "__main__":
     pg.init()
     main()
