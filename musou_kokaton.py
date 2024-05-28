@@ -241,13 +241,41 @@ class Score:
     def __init__(self):
         self.font = pg.font.Font(None, 50)
         self.color = (0, 0, 255)
-        self.value = 100000
+        self.value = 0
         self.image = self.font.render(f"Score: {self.value}", 0, self.color)
         self.rect = self.image.get_rect()
         self.rect.center = 100, HEIGHT-50
 
     def update(self, screen: pg.Surface):
         self.image = self.font.render(f"Score: {self.value}", 0, self.color)
+        screen.blit(self.image, self.rect)
+
+class Enemysum:
+
+    def __init__(self):
+        self.font = pg.font.Font(None, 50)
+        self.color = (0, 255, 255)
+        self.value = 0
+        self.image = self.font.render(f"enemy: {self.value}", 0, self.color)
+        self.rect = self.image.get_rect()
+        self.rect.center = 100, HEIGHT-100
+
+    def update(self, screen: pg.Surface):
+        self.image = self.font.render(f"enemy: {self.value}", 0, self.color)
+        screen.blit(self.image, self.rect)
+
+class nextround:
+
+    def __init__(self):
+        self.font = pg.font.Font(None, 50)
+        self.color = (255, 0, 255)
+        self.value = 0
+        self.image = self.font.render(f"next for : {5-self.value%5} Enemys", 0, self.color)
+        self.rect = self.image.get_rect()
+        self.rect.center = 175, HEIGHT-150
+
+    def update(self, screen: pg.Surface):
+        self.image = self.font.render(f"next for : {5-self.value%5} Enemys", 0, self.color)
         screen.blit(self.image, self.rect)
 
 
@@ -265,7 +293,6 @@ class Gravity(pg.sprite.Sprite):
         self.life -=1
         if self.life< 0:
             self.kill()
-
 
 
 class Shield(pg.sprite.Sprite):
@@ -314,7 +341,8 @@ def main():
     emys = pg.sprite.Group()
     gravity = pg.sprite.Group()
     shields = pg.sprite.Group()
-    Enemysum=0
+    enemysum=Enemysum()
+    nxt=nextround()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -340,8 +368,7 @@ def main():
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
-            Enemysum+=1
-
+            enemysum.value +=1
 
         for emy in emys:
             if emy.state == "stop" and tmr%emy.interval == 0:
@@ -351,7 +378,8 @@ def main():
         for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
             exps.add(Explosion(emy, 100))  # 爆発エフェクト
             score.value += 10  # 10点アップ
-            Enemysum-=1
+            enemysum.value -= 1
+            nxt.value+=1
             bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
@@ -365,6 +393,8 @@ def main():
         for emy in pg.sprite.groupcollide(emys, gravity, True, False).keys():
             exps.add(Explosion(emy, 50))  # 爆発エフェクト
             score.value += 10
+            enemysum.value -= 1
+            nxt.value+=1
             
 
 
@@ -400,11 +430,14 @@ def main():
         shields.update()
         shields.draw(screen)  # 防御壁の描画を追加
         score.update(screen)
+        enemysum.update(screen)
+        nxt.update(screen)
         gravity.update()
         gravity.draw(screen)
         pg.display.update()
-        print(Enemysum)
         tmr += 1
+        
+        #print(Enemysum)
         clock.tick(50)
 
 
