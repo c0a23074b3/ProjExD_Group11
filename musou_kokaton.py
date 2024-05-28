@@ -339,6 +339,92 @@ class Enemy(pg.sprite.Sprite):
         self.rect.centery += self.vy
 
 
+class BIGsraim(pg.sprite.Sprite):
+    """
+    敵機に関するクラス
+    """
+    imgs = [pg.image.load("fig/suraim1.png")]
+    
+    def __init__(self):
+        super().__init__()
+        self.sraimx=random.randint(0, WIDTH)
+        self.image = random.choice(__class__.imgs)
+        self.rect = self.image.get_rect()
+        self.rect.center = self.sraimx, 0
+        self.vy = +6
+        self.bound = random.randint(50, HEIGHT/2)  # 停止位置
+        self.state = "down"  # 降下状態or停止状態
+        self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+
+    def update(self):
+        """
+        敵機を速度ベクトルself.vyに基づき移動（降下）させる
+        ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
+        引数 screen：画面Surface
+        """
+        if self.rect.centery > self.bound:
+            self.vy = 0
+            self.state = "stop"
+        self.rect.centery += self.vy
+
+
+class SMALsraim1(pg.sprite.Sprite):
+    """
+    敵機に関するクラス
+    """
+    imgs = [pg.image.load("fig/suraim2.png")]
+    
+    def __init__(self,x,y):
+        super().__init__()
+        
+        self.image = random.choice(__class__.imgs)
+        self.rect = self.image.get_rect()
+        self.rect.center = x-50,y
+        self.vy = +6
+        self.bound = y  # 停止位置
+        self.state = "down"  # 降下状態or停止状態
+        self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+
+    def update(self):
+        """
+        敵機を速度ベクトルself.vyに基づき移動（降下）させる
+        ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
+        引数 screen：画面Surface
+        """
+        if self.rect.centery > self.bound:
+            self.vy = 0
+            self.state = "stop"
+        self.rect.centery += self.vy
+
+
+class SMALsraim2(pg.sprite.Sprite):
+    """
+    敵機に関するクラス
+    """
+    imgs = [pg.image.load("fig/suraim2.png")]
+    
+    def __init__(self,x,y):
+        super().__init__()
+        
+        self.image = random.choice(__class__.imgs)
+        self.rect = self.image.get_rect()
+        self.rect.center = x+50,y
+        self.vy = +6
+        self.bound = y  # 停止位置
+        self.state = "down"  # 降下状態or停止状態
+        self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+
+    def update(self):
+        """
+        敵機を速度ベクトルself.vyに基づき移動（降下）させる
+        ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
+        引数 screen：画面Surface
+        """
+        if self.rect.centery > self.bound:
+            self.vy = 0
+            self.state = "stop"
+        self.rect.centery += self.vy
+
 class Score:
     """
     打ち落とした爆弾，敵機の数をスコアとして表示するクラス
@@ -348,13 +434,41 @@ class Score:
     def __init__(self):
         self.font = pg.font.Font(None, 50)
         self.color = (0, 0, 255)
-        self.value = 100000
+        self.value = 0
         self.image = self.font.render(f"Score: {self.value}", 0, self.color)
         self.rect = self.image.get_rect()
         self.rect.center = 100, HEIGHT-50
 
     def update(self, screen: pg.Surface):
         self.image = self.font.render(f"Score: {self.value}", 0, self.color)
+        screen.blit(self.image, self.rect)
+
+class Enemysum:
+
+    def __init__(self):
+        self.font = pg.font.Font(None, 50)
+        self.color = (0, 255, 255)
+        self.value = 0
+        self.image = self.font.render(f"enemy: {self.value}", 0, self.color)
+        self.rect = self.image.get_rect()
+        self.rect.center = 100, HEIGHT-100
+
+    def update(self, screen: pg.Surface):
+        self.image = self.font.render(f"enemy: {self.value}", 0, self.color)
+        screen.blit(self.image, self.rect)
+
+class nextround:
+
+    def __init__(self):
+        self.font = pg.font.Font(None, 50)
+        self.color = (255, 0, 255)
+        self.value = 0
+        self.image = self.font.render(f"next for : {5-self.value%5} Enemys", 0, self.color)
+        self.rect = self.image.get_rect()
+        self.rect.center = 175, HEIGHT-150
+
+    def update(self, screen: pg.Surface):
+        self.image = self.font.render(f"next for : {5-self.value%5} Enemys", 0, self.color)
         screen.blit(self.image, self.rect)
 
 
@@ -458,6 +572,9 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load(f"fig/pg_bg.jpg")
     score = Score()
+    n=0
+    sraimls=[]
+
     bird = Bird(3, (900, 400))
     e_beam = pg.sprite.Group()
     bombs = pg.sprite.Group()
@@ -469,6 +586,8 @@ def main():
     round = Round()
     hearts = pg.sprite.Group()
     attack_up = pg.sprite.Group()
+    enemysum=Enemysum()
+    nxt=nextround()
     tmr = 0
     clock = pg.time.Clock()
 
@@ -491,8 +610,15 @@ def main():
                 shields.add(Shield(bird, 400)) # 400フレーム
         screen.blit(bg_img, [0, 0])
 
-        if tmr%round.flem == 0:  # 200フレームに1回，敵機を出現させる
-            emys.add(Enemy())
+        if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
+            if round.round==1:
+                emys.add(Enemy())
+            else:
+                sraim=BIGsraim()
+                emys.add(sraim)
+                sraimls.append(sraim)
+            n+=1
+            enemysum.value +=1
         if tmr%200 == 0:  # テスト、攻撃力アップ
             attack_up.add(Clear_Bou())
         if tmr%1000 == 0:  # 1000フレームに1回, HP回復できる
@@ -503,6 +629,23 @@ def main():
                 bombs.add(Bomb(emy, bird))
                 e_beam.add(Enemy_Beam(emy,bird))
 
+        for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
+            for i in range(len(sraimls)):
+                if emy==sraimls[i]:
+                    emys.add(SMALsraim1(sraimls[i].sraimx,sraimls[i].bound))
+                    emys.add(SMALsraim2(sraimls[i].sraimx,sraimls[i].bound))
+            
+            exps.add(Explosion(emy, 10))  # 爆発エフェクト
+            score.value += 10  # 10点アップ
+            round.kill += 1
+            enemysum.value -= 1
+            nxt.value+=1
+            bird.change_img(6, screen)  # こうかとん喜びエフェクト
+
+        for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
+            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+            score.value += 1  # 1点アップ
+
         for emy in pg.sprite.groupcollide(emys, beams, False, True).keys():
             emy.take_damage(bird.damege)
             exps.add(Explosion(emy, 10))
@@ -511,6 +654,8 @@ def main():
                 score.value += 10  # 10点アップ
                 bird.change_img(6, screen)  # こうかとん喜びエフェクト
                 round.kill+=1
+                enemysum.value -= 1
+                nxt.value+=1
 
         if bird.damege > 3:
             for bomb in pg.sprite.groupcollide(bombs, beams, True, False).keys():
@@ -528,6 +673,11 @@ def main():
         for emy in pg.sprite.groupcollide(emys, gravity, True, False).keys():
             exps.add(Explosion(emy, 50))  # 爆発エフェクト
             score.value += 10
+            round.kill += 1
+            nxt.value+=1
+            enemysum.value -= 1
+            nxt.value+=1
+            
 
         if len(pg.sprite.spritecollide(bird, hearts, True)) != 0:  # 空からのハートを拾うと回復できる
             if bird.HP_life < bird.HP_limit:
@@ -585,6 +735,8 @@ def main():
         shields.update()
         shields.draw(screen)  # 防御壁の描画を追加
         score.update(screen)
+        enemysum.update(screen)
+        nxt.update(screen)
         gravity.update()
         gravity.draw(screen)
         e_beam.update(tmr)
@@ -593,6 +745,8 @@ def main():
         round.update(screen)
         pg.display.update()
         tmr += 1
+        
+        #print(Enemysum)
         clock.tick(50)
 
         
