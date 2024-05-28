@@ -104,9 +104,9 @@ class Bird(pg.sprite.Sprite):
                 sum_mv[0] += mv[0]
                 sum_mv[1] += mv[1]
             if key_lst[pg.K_LSHIFT]: # 左Shiftキーが押されている場合、速度を倍にする
-                self.speed = 20
-            else:
                 self.speed = 10
+            else:
+                self.speed = 5
         self.rect.move_ip(self.speed*sum_mv[0], self.speed*sum_mv[1])
         if check_bound(self.rect) != (True, True):
             self.rect.move_ip(-self.speed*sum_mv[0], -self.speed*sum_mv[1])
@@ -416,6 +416,7 @@ class Round:
         self.rect = self.text.get_rect()
         self.rect.center = (800, 100)
         self.kill = 0
+        self.flem = 200
 
     def update(self, screen: pg.surface):
         self.text = self.font.render(f"Round: {self.round}", 0, (255,255,255))
@@ -490,7 +491,7 @@ def main():
                 shields.add(Shield(bird, 400)) # 400フレーム
         screen.blit(bg_img, [0, 0])
 
-        if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
+        if tmr%round.flem == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
         if tmr%200 == 0:  # テスト、攻撃力アップ
             attack_up.add(Clear_Bou())
@@ -502,16 +503,6 @@ def main():
                 bombs.add(Bomb(emy, bird))
                 e_beam.add(Enemy_Beam(emy,bird))
 
-        for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
-            exps.add(Explosion(emy, 100))  # 爆発エフェクト
-            score.value += 10  # 10点アップ
-            round.kill += 1
-            bird.change_img(6, screen)  # こうかとん喜びエフェクト
-
-        for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
-            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
-            score.value += 1  # 1点アップ
-
         for emy in pg.sprite.groupcollide(emys, beams, False, True).keys():
             emy.take_damage(bird.damege)
             exps.add(Explosion(emy, 10))
@@ -519,6 +510,7 @@ def main():
                 exps.add(Explosion(emy, 100))  # 爆発エフェクト
                 score.value += 10  # 10点アップ
                 bird.change_img(6, screen)  # こうかとん喜びエフェクト
+                round.kill+=1
 
         if bird.damege > 3:
             for bomb in pg.sprite.groupcollide(bombs, beams, True, False).keys():
@@ -572,6 +564,10 @@ def main():
             round.kill += 1
             round.round += 1
             round.kill = 0
+            if round.flem <= 50:
+                round.flem -= 0.1
+            else:
+                 round.flem -= 50
         
         bird.update(key_lst, screen)
         beams.update()
