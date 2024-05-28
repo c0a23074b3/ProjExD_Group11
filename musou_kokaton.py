@@ -130,9 +130,9 @@ class Enemy_Beam(pg.sprite.Sprite):
          self.bold = 1
          self.memoemx = emy.rect.centerx
          self.memoemy = emy.rect.centery
-         self.kkx = bird.rect.centerx
-         self.kky = bird.rect.centery 
-         pg.draw.line(self.image, self.color, (emy.rect.centerx,emy.rect.centery), (bird.rect.centerx,bird.rect.centery),self.bold)
+         self.kkx = bird.rect.centerx/2
+         self.kky = bird.rect.centery/2 
+         pg.draw.line(self.image, self.color, (emy.rect.centerx,emy.rect.centery), (bird.rect.centerx/2,bird.rect.centery/2),self.bold)
          self.image.set_colorkey((0,0,0))
          self.rect = self.image.get_rect()
 
@@ -141,6 +141,7 @@ class Enemy_Beam(pg.sprite.Sprite):
             self.bold += 1
           if self.bold < 10:
             pg.draw.line(self.image, self.color, (self.memoemx,self.memoemy), (self.kkx,self.kky),self.bold)
+            return self.bold
           if self.bold == 10:
               self.kill()
             
@@ -414,16 +415,18 @@ def main():
 
         # どのくらい当たっているかを可視化できるようにしたい
         # ビームの敵とボムの敵を分ける
-        if len(pg.sprite.spritecollide(bird, e_beam, False)) != 0:  # 衝突判定を任意の条件で削除するようにするには？（今は削除しないになっている）
-            count += 1
-            if bird.state == "normal" and count >= 120:
+        if len(pg.sprite.spritecollide(bird, e_beam, False)) != 0:  # 衝突判定を任意の条件で削除するようにするには？（今は削除しないになっている)
+            count +=1
+            print(count)
+            if bird.state == "normal" and count == 80:
                 bird.change_img(8, screen) # こうかとん悲しみエフェクト
                 score.update(screen)
                 pg.display.update()
                 time.sleep(2)
-                return
-        else:
-            count = 0
+                return 
+       
+        count = 0
+        print(count)
     
 
 
