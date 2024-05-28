@@ -267,6 +267,7 @@ class Gravity(pg.sprite.Sprite):
             self.kill()
 
 
+
 class Shield(pg.sprite.Sprite):
     """
     防御壁に関するクラス
@@ -313,6 +314,7 @@ def main():
     emys = pg.sprite.Group()
     gravity = pg.sprite.Group()
     shields = pg.sprite.Group()
+    Enemysum=0
 
     tmr = 0
     clock = pg.time.Clock()
@@ -338,6 +340,8 @@ def main():
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
+            Enemysum+=1
+
 
         for emy in emys:
             if emy.state == "stop" and tmr%emy.interval == 0:
@@ -347,6 +351,7 @@ def main():
         for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
             exps.add(Explosion(emy, 100))  # 爆発エフェクト
             score.value += 10  # 10点アップ
+            Enemysum-=1
             bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
@@ -398,6 +403,7 @@ def main():
         gravity.update()
         gravity.draw(screen)
         pg.display.update()
+        print(Enemysum)
         tmr += 1
         clock.tick(50)
 
