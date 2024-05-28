@@ -232,6 +232,92 @@ class Enemy(pg.sprite.Sprite):
         self.rect.centery += self.vy
 
 
+class BIGsraim(pg.sprite.Sprite):
+    """
+    敵機に関するクラス
+    """
+    imgs = [pg.image.load("fig/suraim1.png")]
+    
+    def __init__(self):
+        super().__init__()
+        self.sraimx=random.randint(0, WIDTH)
+        self.image = random.choice(__class__.imgs)
+        self.rect = self.image.get_rect()
+        self.rect.center = self.sraimx, 0
+        self.vy = +6
+        self.bound = random.randint(50, HEIGHT/2)  # 停止位置
+        self.state = "down"  # 降下状態or停止状態
+        self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+
+    def update(self):
+        """
+        敵機を速度ベクトルself.vyに基づき移動（降下）させる
+        ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
+        引数 screen：画面Surface
+        """
+        if self.rect.centery > self.bound:
+            self.vy = 0
+            self.state = "stop"
+        self.rect.centery += self.vy
+
+
+class SMALsraim1(pg.sprite.Sprite):
+    """
+    敵機に関するクラス
+    """
+    imgs = [pg.image.load("fig/suraim2.png")]
+    
+    def __init__(self,x,y):
+        super().__init__()
+        
+        self.image = random.choice(__class__.imgs)
+        self.rect = self.image.get_rect()
+        self.rect.center = x-50,y
+        self.vy = +6
+        self.bound = y  # 停止位置
+        self.state = "down"  # 降下状態or停止状態
+        self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+
+    def update(self):
+        """
+        敵機を速度ベクトルself.vyに基づき移動（降下）させる
+        ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
+        引数 screen：画面Surface
+        """
+        if self.rect.centery > self.bound:
+            self.vy = 0
+            self.state = "stop"
+        self.rect.centery += self.vy
+
+
+class SMALsraim2(pg.sprite.Sprite):
+    """
+    敵機に関するクラス
+    """
+    imgs = [pg.image.load("fig/suraim2.png")]
+    
+    def __init__(self,x,y):
+        super().__init__()
+        
+        self.image = random.choice(__class__.imgs)
+        self.rect = self.image.get_rect()
+        self.rect.center = x+50,y
+        self.vy = +6
+        self.bound = y  # 停止位置
+        self.state = "down"  # 降下状態or停止状態
+        self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+
+    def update(self):
+        """
+        敵機を速度ベクトルself.vyに基づき移動（降下）させる
+        ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
+        引数 screen：画面Surface
+        """
+        if self.rect.centery > self.bound:
+            self.vy = 0
+            self.state = "stop"
+        self.rect.centery += self.vy
+
 class Score:
     """
     打ち落とした爆弾，敵機の数をスコアとして表示するクラス
@@ -306,6 +392,8 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load(f"fig/pg_bg.jpg")
     score = Score()
+    n=0
+    sraimls=[]
 
     bird = Bird(3, (900, 400))
     bombs = pg.sprite.Group()
@@ -339,8 +427,10 @@ def main():
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
-            emys.add(Enemy())
-            Enemysum+=1
+            sraim=BIGsraim()
+            emys.add(sraim)
+            sraimls.append(sraim)
+            n+=1
 
 
         for emy in emys:
@@ -349,9 +439,14 @@ def main():
                 bombs.add(Bomb(emy, bird))
 
         for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
-            exps.add(Explosion(emy, 100))  # 爆発エフェクト
+            for i in range(len(sraimls)):
+                if emy==sraimls[i]:
+                    emys.add(SMALsraim1(sraimls[i].sraimx,sraimls[i].bound))
+                    emys.add(SMALsraim2(sraimls[i].sraimx,sraimls[i].bound))
+            
+            exps.add(Explosion(emy, 10))  # 爆発エフェクト
             score.value += 10  # 10点アップ
-            Enemysum-=1
+            
             bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
@@ -403,7 +498,6 @@ def main():
         gravity.update()
         gravity.draw(screen)
         pg.display.update()
-        print(Enemysum)
         tmr += 1
         clock.tick(50)
 
