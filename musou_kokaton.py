@@ -68,8 +68,20 @@ class Bird(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = xy
         self.speed = 10
-        self.state = "normal"
+        self.state = "normal"  # こうかとんの無敵モードかの判定
         self.hyper_life = 0
+        # HP表示の初期設定
+        self.HP_limit = 5  # こうかとんの上限HP
+        self.HP_life = 3  # こうかとんの初期HP
+        self.damege = 1  # こうかとんの初期攻撃力
+        self.font = pg.font.Font(None, 50)
+        self.color = (255, 0, 0)
+        self.HP_image = self.font.render(f"HP: {self.HP_life}/ {self.HP_limit}", 0, self.color)
+        self.HP_rect = self.HP_image.get_rect()
+        self.HP_rect.center = 400, HEIGHT - 50
+        self.damege_image = self.font.render(f'Damage: {self.damege}', 0, self.color)
+        self.damege_rect = self.HP_image.get_rect()
+        self.damege_rect.center = 600, HEIGHT - 50
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -108,7 +120,10 @@ class Bird(pg.sprite.Sprite):
         else:
             self.state = "normal"
         screen.blit(self.image, self.rect)
-    
+        self.HP_image = self.font.render(f"HP: {self.HP_life}/{self.HP_limit}", 0, self.color)  # HPの反映を表示させる
+        screen.blit(self.HP_image, self.HP_rect)
+        self.damege_image = self.font.render(f'Damage: {self.damege}', 0, self.color)  # 攻撃力を反映させる
+        screen.blit(self.damege_image, self.damege_rect)
 
 class Enemy_Beam(pg.sprite.Sprite):
      """
@@ -250,6 +265,7 @@ class Beam(pg.sprite.Sprite):
         self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
         self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
         self.speed = 10
+        self.damege = 1
 
     def update(self):
         """
@@ -304,7 +320,12 @@ class Enemy(pg.sprite.Sprite):
         self.bound = random.randint(50, HEIGHT/2)  # 停止位置
         self.state = "down"  # 降下状態or停止状態
         self.interval = random.randint(50, 300)  # 爆弾投下インターバル
-        self.beamcount = 0
+        self.hp = 3
+
+    def take_damage(self, amount):
+        self.hp -= amount
+        if self.hp <= 0:
+            self.kill()
 
     def update(self):
         """
@@ -401,6 +422,36 @@ class Round:
         screen.blit(self.text, self.rect)
 
 
+class Bouns(pg.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pg.image.load(f"fig/heart.png")
+        self.rect = self.image.get_rect()
+        self.rect.center = random.randint(0, WIDTH), 0
+        self.vy = +6
+        self.bound = random.randint(50, HEIGHT/2)  # 停止位置
+
+    def update(self):
+        if self.rect.centery > self.bound:
+            self.vy = 0
+        self.rect.centery += self.vy
+
+
+class Clear_Bou(pg.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pg.image.load(f"fig/beam.png")
+        self.rect = self.image.get_rect()
+        self.rect.center = random.randint(0, WIDTH), 0
+        self.vy = +6
+        self.bound = random.randint(50, HEIGHT/2)  # 停止位置
+
+    def update(self):
+        if self.rect.centery > self.bound:
+            self.vy = 0
+        self.rect.centery += self.vy
+
+
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -415,6 +466,8 @@ def main():
     gravity = pg.sprite.Group()
     shields = pg.sprite.Group()
     round = Round()
+    hearts = pg.sprite.Group()
+    attack_up = pg.sprite.Group()
     tmr = 0
     clock = pg.time.Clock()
 
@@ -429,18 +482,20 @@ def main():
                 print(score.value)
                 score.value -= 200
                 gravity.add(Gravity(400))
-            if event.type == pg.KEYDOWN and event.key == pg.K_k and score.value >= 100:
+            if event.type == pg.KEYDOWN and event.key == pg.K_k and score.value >= 100:  # 無敵状態の発動
                 bird.hyper_life = 500
                 score.value -= 100
             if event.type == pg.KEYDOWN and event.key == pg.K_RSHIFT and score.value >= 50 and not shields: # シールド発動条件
                 score.value -= 50 # スコア50消費
                 shields.add(Shield(bird, 400)) # 400フレーム
-
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
-
+        if tmr%200 == 0:  # テスト、攻撃力アップ
+            attack_up.add(Clear_Bou())
+        if tmr%1000 == 0:  # 1000フレームに1回, HP回復できる
+            hearts.add(Bouns())
         for emy in emys:
             if emy.state == "stop" and tmr%emy.interval == 0:
                 # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
@@ -457,6 +512,23 @@ def main():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
 
+        for emy in pg.sprite.groupcollide(emys, beams, False, True).keys():
+            emy.take_damage(bird.damege)
+            exps.add(Explosion(emy, 10))
+            if emy.hp <= 0:
+                exps.add(Explosion(emy, 100))  # 爆発エフェクト
+                score.value += 10  # 10点アップ
+                bird.change_img(6, screen)  # こうかとん喜びエフェクト
+
+        if bird.damege > 3:
+            for bomb in pg.sprite.groupcollide(bombs, beams, True, False).keys():
+                exps.add(Explosion(bomb, 30))  # 爆発エフェクト
+                score.value += 1  # 1点アップ
+        else:
+            for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
+                exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+                score.value += 1  # 1点アップ
+
         for bomb in pg.sprite.groupcollide(bombs, gravity, True, False).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1
@@ -464,14 +536,21 @@ def main():
         for emy in pg.sprite.groupcollide(emys, gravity, True, False).keys():
             exps.add(Explosion(emy, 50))  # 爆発エフェクト
             score.value += 10
-       
-        if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
+
+        if len(pg.sprite.spritecollide(bird, hearts, True)) != 0:  # 空からのハートを拾うと回復できる
+            if bird.HP_life < bird.HP_limit:
+                bird.HP_life += 1
+        if len(pg.sprite.spritecollide(bird, attack_up, True)) != 0:  # ビームを拾うと攻撃アップ
+            bird.damege += 1
+        if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:  # こうかとんと爆弾の衝突判定
             if bird.state == "normal":
-                bird.change_img(8, screen) # こうかとん悲しみエフェクト
-                score.update(screen)
-                pg.display.update()
-                time.sleep(2)
-                return
+                bird.HP_life -= 1  # こうかとんが攻撃を耐えることができた
+                if bird.HP_life <= 0:
+                    bird.change_img(8, screen) # こうかとん悲しみエフェクト
+                    score.update(screen)
+                    pg.display.update()
+                    time.sleep(2)
+                    return
             else:
                 score.value += 1
 
@@ -489,23 +568,20 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, shields, True, False).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
 
-        if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
-            bird.change_img(8, screen) # こうかとん悲しみエフェクト
-            score.update(screen)
-            pg.display.update()
-            time.sleep(2)
-            return
-        
         if round.kill == 5: # 5回キルをするとラウンド数が増える
             round.kill += 1
             round.round += 1
             round.kill = 0
         
-
+        bird.update(key_lst, screen)
         beams.update()
         beams.draw(screen)
         emys.update()
         emys.draw(screen)
+        hearts.update()
+        hearts.draw(screen)  # ハートのブリット
+        attack_up.update()
+        attack_up.draw(screen)
         bombs.update()
         bombs.draw(screen)
         exps.update()
