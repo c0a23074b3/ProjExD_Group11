@@ -375,7 +375,6 @@ def main():
         for emy in pg.sprite.groupcollide(emys, gravity, True, False).keys():
             exps.add(Explosion(emy, 50))  # 爆発エフェクト
             score.value += 10
-            
 
 
         if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
