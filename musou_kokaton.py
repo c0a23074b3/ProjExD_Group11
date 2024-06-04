@@ -104,9 +104,9 @@ class Bird(pg.sprite.Sprite):
                 sum_mv[0] += mv[0]
                 sum_mv[1] += mv[1]
             if key_lst[pg.K_LSHIFT]: # 左Shiftキーが押されている場合、速度を倍にする
-                self.speed = 20
-            else:
                 self.speed = 10
+            else:
+                self.speed = 5
         self.rect.move_ip(self.speed*sum_mv[0], self.speed*sum_mv[1])
         if check_bound(self.rect) != (True, True):
             self.rect.move_ip(-self.speed*sum_mv[0], -self.speed*sum_mv[1])
@@ -355,6 +355,12 @@ class BIGsraim(pg.sprite.Sprite):
         self.bound = random.randint(50, HEIGHT/2)  # 停止位置
         self.state = "down"  # 降下状態or停止状態
         self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+        self.hp = 1
+
+    def take_damage(self, amount):
+        self.hp -= amount
+        if self.hp <= 0:
+            self.kill()
 
     def update(self):
         """
@@ -384,6 +390,12 @@ class SMALsraim1(pg.sprite.Sprite):
         self.bound = y  # 停止位置
         self.state = "down"  # 降下状態or停止状態
         self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+        self.hp = 1
+
+    def take_damage(self, amount):
+        self.hp -= amount
+        if self.hp <= 0:
+            self.kill()
 
     def update(self):
         """
@@ -412,7 +424,13 @@ class SMALsraim2(pg.sprite.Sprite):
         self.vy = +6
         self.bound = y  # 停止位置
         self.state = "down"  # 降下状態or停止状態
-        self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+        self.interval = random.randint(50, 300)  # 爆弾投下インターバル    
+        self.hp = 1
+
+    def take_damage(self, amount):
+        self.hp -= amount
+        if self.hp <= 0:
+            self.kill()
 
     def update(self):
         """
@@ -530,6 +548,7 @@ class Round:
         self.rect = self.text.get_rect()
         self.rect.center = (800, 100)
         self.kill = 0
+        self.flem = 200
 
     def update(self, screen: pg.surface):
         self.text = self.font.render(f"Round: {self.round}", 0, (255,255,255))
@@ -573,7 +592,6 @@ def main():
     score = Score()
     n=0
     sraimls=[]
-
     bird = Bird(3, (900, 400))
     e_beam = pg.sprite.Group()
     bombs = pg.sprite.Group()
@@ -618,7 +636,6 @@ def main():
                 sraimls.append(sraim)
             n+=1
             enemysum.value +=1
-
         if tmr%200 == 0:  # テスト、攻撃力アップ
             attack_up.add(Clear_Bou())
         if tmr%1000 == 0:  # 1000フレームに1回, HP回復できる
@@ -629,22 +646,26 @@ def main():
                 bombs.add(Bomb(emy, bird))
                 e_beam.add(Enemy_Beam(emy,bird))
 
-        for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
+        for emy in pg.sprite.groupcollide(emys, beams, False , True).keys():
             for i in range(len(sraimls)):
                 if emy==sraimls[i]:
                     emys.add(SMALsraim1(sraimls[i].sraimx,sraimls[i].bound))
                     emys.add(SMALsraim2(sraimls[i].sraimx,sraimls[i].bound))
-            
-            exps.add(Explosion(emy, 10))  # 爆発エフェクト
-            score.value += 10  # 10点アップ
-            round.kill += 1
-            enemysum.value -= 1
-            nxt.value+=1
-            bird.change_img(6, screen)  # こうかとん喜びエフェクト
-
-        for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
-            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
-            score.value += 1  # 1点アップ
+                    exps.add(Explosion(emy, 10))  # 爆発エフェクト
+                    score.value += 10  # 10点アップ
+                    round.kill += 1
+                    enemysum.value += 2
+                    nxt.value+=1
+                    bird.change_img(6, screen)  # こうかとん喜びエフェクト
+            emy.take_damage(bird.damege)
+            exps.add(Explosion(emy, 10))
+            if emy.hp <= 0:
+                exps.add(Explosion(emy, 100))  # 爆発エフェクト
+                score.value += 10  # 10点アップ
+                bird.change_img(6, screen)  # こうかとん喜びエフェクト
+                round.kill+=1
+                enemysum.value -= 1
+                nxt.value+=1
 
         for emy in pg.sprite.groupcollide(emys, beams, False, True).keys():
             emy.take_damage(bird.damege)
@@ -653,6 +674,9 @@ def main():
                 exps.add(Explosion(emy, 100))  # 爆発エフェクト
                 score.value += 10  # 10点アップ
                 bird.change_img(6, screen)  # こうかとん喜びエフェクト
+                round.kill+=1
+                enemysum.value -= 1
+                nxt.value+=1
 
         if bird.damege > 3:
             for bomb in pg.sprite.groupcollide(bombs, beams, True, False).keys():
@@ -670,10 +694,11 @@ def main():
         for emy in pg.sprite.groupcollide(emys, gravity, True, False).keys():
             exps.add(Explosion(emy, 50))  # 爆発エフェクト
             score.value += 10
+            round.kill += 1
+            nxt.value+=1
             enemysum.value -= 1
             nxt.value+=1
             
-
         if len(pg.sprite.spritecollide(bird, hearts, True)) != 0:  # 空からのハートを拾うと回復できる
             if bird.HP_life < bird.HP_limit:
                 bird.HP_life += 1
@@ -705,10 +730,14 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, shields, True, False).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
 
-        if round.kill == 5: # 5回キルをするとラウンド数が増える
+        if round.kill >= 5: # 5回キルをするとラウンド数が増える
             round.kill += 1
             round.round += 1
             round.kill = 0
+            if round.flem <= 50:
+                round.flem -= 0.1
+            else:
+                 round.flem -= 50
         
         bird.update(key_lst, screen)
         beams.update()
